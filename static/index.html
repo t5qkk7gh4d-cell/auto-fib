@@ -1,0 +1,75 @@
+<!doctype html>
+
+
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Auto Fibonacci Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; }
+    input, button { padding: 8px; margin: 4px; font-size: 16px; }
+    #chart { margin-top: 12px; }
+    .levels { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Auto Fibonacci Tool</h2>
+  <p>Type ticker and choose a timeframe. The tool auto-applies Fibonacci retracement.</p>
+  <input id="ticker" placeholder="e.g. AAPL" />
+  <div id="buttons">
+    <button data-range="L24_hours">L24 hours</button>
+    <button data-range="L7_days">L7 days</button>
+    <button data-range="L30_days">L30 days</button>
+    <button data-range="L3_months">L3 months</button>
+    <button data-range="L6_months">L6 months</button>
+    <button data-range="L1_year">L1 year</button>
+    <button data-range="L3_years">L3 years</button>
+    <button data-range="L5_years">L5 years</button>
+    <button data-range="L_decade">L decade</button>
+  </div>
+  <div id="status"></div>
+  <div id="chart"></div>
+  <div class="levels" id="levels"></div>
+
+
+  <script>
+    async function callAPI(ticker, range) {
+      document.getElementById("status").innerText = "Loading...";
+      try {
+        const resp = await fetch(`/api/fib?ticker=${encodeURIComponent(ticker)}&range=${encodeURIComponent(range)}`);
+        if (!resp.ok) {
+          const j = await resp.json();
+          document.getElementById("status").innerText = "Error: " + (j.detail || resp.statusText);
+          return;
+        }
+        const j = await resp.json();
+        document.getElementById("status").innerText = "";
+        document.getElementById("chart").innerHTML = `<img src="${j.image}" width="100%"/>`;
+        let html = `<strong>Endpoints</strong><br/>Low: ${j.endpoints.low.ts} @ ${j.endpoints.low.price}<br/>High: ${j.endpoints.high.ts} @ ${j.endpoints.high.price}<br/><br/>`;
+        html += `<strong>Levels</strong><br/><table border="1" cellpadding="4"><tr><th>Ratio</th><th>Price</th></tr>`;
+        j.levels.forEach(l => {
+          html += `<tr><td>${l.ratio}</td><td>${l.price}</td></tr>`;
+        });
+        html += `</table>`;
+        document.getElementById("levels").innerHTML = html;
+      } catch (e) {
+        document.getElementById("status").innerText = "Error: " + e.message;
+      }
+    }
+
+    document.querySelectorAll("#buttons button").forEach(b => {
+      b.addEventListener("click", async () => {
+        const ticker = document.getElementById("ticker").value.trim();
+        if (!ticker) {
+          alert("Please enter a ticker.");
+          return;
+        }
+        const range = b.getAttribute("data-range");
+        await callAPI(ticker, range);
+      });
+    });
+  </script>
+
+
+</body>
+</html>
